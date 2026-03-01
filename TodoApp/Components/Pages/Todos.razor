@@ -1,0 +1,137 @@
+@page "/todos"
+@using System.ComponentModel.DataAnnotations
+@using TodoApp.Models
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Mvc
+@using TodoApp.Domain
+@inject HttpClient Http
+@rendermode InteractiveServer
+
+<h3>Create a new Todo</h3>
+
+<EditForm Model="newTodo" OnSubmit="CreateTodo" FormName="add-todo-form">
+    <InputText @bind-Value="newTodo.Title" 
+               placeholder="Write a todo..." />
+
+    <button type="submit">Save</button>
+
+</EditForm>
+
+<hr />
+
+<h3>Active Todos</h3>
+
+@if (activeTodos.Any())
+{
+    <ul>
+        @foreach (var todo in activeTodos)
+        {
+            <li @key="todo.Id" style="display:flex; align-items:center; gap:10px;">
+                <input type="checkbox" 
+                       checked="@todo.IsCompleted"
+                       @onchange="() => ToggleComplete(todo)" />
+                <span>@todo.Title</span>
+                
+                <button @onclick="() => DeleteTodo(todo.Id)">
+                    Delete
+                </button>
+            </li>
+        }
+    </ul>
+}
+else
+{
+    <p>No active todos.</p>
+}
+
+<hr />
+
+<h3>History</h3>
+
+@if (completedTodos.Any())
+{
+    <ul>
+        @foreach (var todo in completedTodos)
+        {
+            <li @key="todo.Id" style="display:flex; align-items:center; gap:10px;">
+                <span>✔ @todo.Title</span>
+                
+                <button @onclick="() => DeleteTodo(todo.Id)">
+                    Delete
+                </button>
+            </li>
+        }
+    </ul>
+}
+else
+{
+    <p>No history.</p>
+}
+
+@code {
+    private List<TodoDto> todos = new();
+
+    private IEnumerable<TodoDto> activeTodos =>
+        todos.Where(t => !t.IsCompleted);
+
+    private IEnumerable<TodoDto> completedTodos =>
+        todos.Where(t => t.IsCompleted);
+    
+    [SupplyParameterFromForm]
+    private CreateTodoModel newTodo { get; set; } = new();
+
+    public class CreateTodoModel
+    {
+        [Required]
+        public string Title { get; set; } = string.Empty;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTodos();
+    }
+
+    private async Task LoadTodos()
+    {
+        todos = await Http.GetFromJsonAsync<List<TodoDto>>("api/todos")
+                ?? new List<TodoDto>();
+    }
+
+    private async Task CreateTodo()
+    {
+        if (string.IsNullOrWhiteSpace(newTodo.Title))
+            return;
+
+        var todo = new TodoDto
+        {
+            Title = newTodo.Title
+        };
+
+        var response = await Http.PostAsJsonAsync("api/todos", todo);
+
+        if (response.IsSuccessStatusCode)
+        {
+            newTodo = new();
+            await LoadTodos();
+        }
+    }
+
+    private async Task ToggleComplete(TodoDto todo)
+    {
+        todo.IsCompleted = true;
+        
+        await Http.PutAsJsonAsync($"api/todos/{todo.Id}", todo);
+        
+        await LoadTodos();
+    }
+    
+    private async Task DeleteTodo(Guid id)
+    {
+        var response = await Http.DeleteAsync($"api/todos/{id}");
+
+        if (response.IsSuccessStatusCode)
+        {
+            await LoadTodos();
+        }
+    }
+}
