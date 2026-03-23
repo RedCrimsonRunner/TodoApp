@@ -14,6 +14,7 @@ The application currently supports:
 - Marking a todo as completed
 - Automatically moving completed todos to a history list
 - Deleting todos from both active and completed lists
+- Editing active todos
 
 When a todo is marked as completed, it is immediately removed from the active list and added to the history section.
 
@@ -35,7 +36,6 @@ When a todo is marked as completed, it is immediately removed from the active li
 The next improvements would include:
 
 - Persisting data (e.g., database or local storage)
-- Adding edit functionality for todos
 - Implementing filtering (All / Active / Completed)
 - Adding unit tests
 - Improving UI styling and responsiveness

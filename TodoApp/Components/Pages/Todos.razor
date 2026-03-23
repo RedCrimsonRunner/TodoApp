@@ -30,8 +30,17 @@
                 <input type="checkbox" 
                        checked="@todo.IsCompleted"
                        @onchange="() => ToggleComplete(todo)" />
-                <span>@todo.Title</span>
-                
+                @if (editingTodoId == todo.Id)
+                {
+                    <InputText @bind-Value="editingTitle" />
+                    <button @onclick="() => SaveEdit(todo)">Save</button>
+                    <button @onclick="CancelEdit">Cancel</button>
+                }
+                else
+                {
+                    <span>@todo.Title</span>
+                    <button @onclick="() => StartEdit(todo)">Edit</button>
+                }
                 <button @onclick="() => DeleteTodo(todo.Id)">
                     Delete
                 </button>
@@ -79,6 +88,9 @@ else
     
     [SupplyParameterFromForm]
     private CreateTodoModel newTodo { get; set; } = new();
+    
+    private Guid? editingTodoId = null;
+    private string editingTitle = "";
 
     public class CreateTodoModel
     {
@@ -133,5 +145,29 @@ else
         {
             await LoadTodos();
         }
+    }
+    
+    private void StartEdit(TodoDto todo)
+    {
+        editingTodoId = todo.Id;
+        editingTitle = todo.Title;
+    }
+    
+    private async Task SaveEdit(TodoDto todo)
+    {
+        todo.Title = editingTitle;
+
+        await Http.PutAsJsonAsync($"api/todos/{todo.Id}", todo);
+
+        editingTodoId = null;
+        editingTitle = "";
+
+        await LoadTodos();
+    }
+    
+    private void CancelEdit()
+    {
+        editingTodoId = null;
+        editingTitle = "";
     }
 }
